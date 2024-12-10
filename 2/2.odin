@@ -3,6 +3,7 @@ package main
 import "core:fmt"
 import "core:log"
 import "core:math"
+import "core:slice"
 import "core:strconv"
 import "core:strings"
 import "core:testing"
@@ -29,14 +30,22 @@ main :: proc() {
 	assert(len(raw_reports) == len(reports))
 
 	safe_reports_amount: int
+	safe_reports_with_dampener: int
 	for report in reports {
 		if is_report_safe(report[:]) {
 			safe_reports_amount += 1
+		} else if is_report_safe_with_problem_dampener(report[:]) {
+			safe_reports_with_dampener += 1
 		}
 	}
 
 	fmt.printfln("Total number of reports is: %d", len(reports))
 	fmt.printfln("The number of safe reports is: %d", safe_reports_amount)
+	fmt.printfln("The number of safe reports with dampener is: %d", safe_reports_with_dampener)
+	fmt.printfln(
+		"Total number of safe reports: %d",
+		safe_reports_amount + safe_reports_with_dampener,
+	)
 }
 
 is_report_safe :: proc(report: []int) -> bool {
@@ -61,6 +70,28 @@ is_report_safe :: proc(report: []int) -> bool {
 		if first_run do first_run = false
 	}
 	return true
+}
+
+is_report_safe_with_problem_dampener :: proc(report: []int) -> bool {
+	for i in 0 ..< len(report) {
+		if i == 0 {
+			if is_report_safe(report[1:]) {
+				return true
+			}
+		}
+		if i == len(report) - 1 {
+			if is_report_safe(report[:len(report) - 1]) {
+				return true
+			}
+		}
+
+		skipped := slice.concatenate([][]int{report[:i], report[i + 1:]})
+		defer delete(skipped)
+		if is_report_safe(skipped) {
+			return true
+		}
+	}
+	return false
 }
 
 @(test)
